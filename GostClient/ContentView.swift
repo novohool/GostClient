@@ -17,6 +17,7 @@ struct ContentView: View {
                         if viewModel.isConnected {
                             viewModel.disconnect()
                         } else {
+                            viewModel.useLocalBinary() // 使用本地 GOST 文件
                             viewModel.connect()
                         }
                     }) {
@@ -36,6 +37,13 @@ struct ContentView: View {
                         HStack {
                             Image(systemName: "gear")
                             Text("代理设置")
+                        }
+                    }
+                    
+                    NavigationLink(destination: VPNManagementView()) {
+                        HStack {
+                            Image(systemName: "vpn" )
+                            Text("VPN 管理")
                         }
                     }
                 }

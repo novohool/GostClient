@@ -4,37 +4,52 @@ struct BinaryManagementView: View {
     @StateObject private var binaryManager = GostBinaryManager.shared
     @State private var showingError = false
     
+    @ViewBuilder
+    private func statusView() -> some View {
+        if binaryManager.isDownloading {
+            ProgressView("下载中...", value: binaryManager.downloadProgress, total: 1.0)
+        } else if binaryManager.isInstalled {
+            HStack {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                Text("已安装")
+            }
+        } else {
+            HStack {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.red)
+                Text("未安装")
+                Spacer()
+                Button("安装") {
+                    do {
+                        try binaryManager.checkAndInstallBinary()
+                    } catch {
+                        showingError = true
+                        binaryManager.error = error.localizedDescription
+                    }
+                }
+                .alert("错误", isPresented: $showingError) {
+                    Button("确定", role: .cancel) {}
+                } message: {
+                    Text(binaryManager.error)
+                }
+            }
+        }
+    }
+    
     var body: some View {
         List {
             Section(header: Text("GOST 二进制")) {
-                if binaryManager.isDownloading {
-                    ProgressView("下载中...", value: binaryManager.downloadProgress, total: 1.0)
+                statusView() // 使用提取的方法
+                if binaryManager.isRunning {
+                    Text("正在运行")
                 } else {
-                    HStack {
-                        Image(systemName: binaryManager.isInstalled ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .foregroundColor(binaryManager.isInstalled ? .green : .red)
-                        Text(binaryManager.isInstalled ? "已安装" : "未安装")
-                        
-                        if !binaryManager.isInstalled {
-                            Spacer()
-                            Button("安装") {
-                                Task {
-                                    do {
-                                        try await binaryManager.downloadAndInstall()
-                                    } catch {
-                                        showingError = true
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    
-                    HStack {
-                        Image(systemName: binaryManager.isRunning ? "play.circle.fill" : "stop.circle.fill")
-                            .foregroundColor(binaryManager.isRunning ? .green : .red)
-                        Text(binaryManager.isRunning ? "运行中" : "已停止")
-                    }
+                    Text("已停止")
                 }
+                
+                // 更新连接状态反馈
+                Text(binaryManager.isConnected ? "VPN 连接状态: 已连接" : "VPN 连接状态: 未连接")
+                    .foregroundColor(binaryManager.isConnected ? .green : .red)
             }
             
             if binaryManager.isInstalled {
@@ -53,13 +68,25 @@ struct BinaryManagementView: View {
                                 let configPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
                                     .appendingPathComponent("gost.yaml")
                                     .path
-                                try binaryManager.startGost(configPath: configPath)
+                                do {
+                                    try binaryManager.startGost(configPath: configPath)
+                                    binaryManager.isRunning = true // 更新运行状态
+                                } catch {
+                                    showingError = true
+                                    binaryManager.error = error.localizedDescription // 记录错误信息
+                                }
                             } catch {
                                 showingError = true
+                                binaryManager.error = error.localizedDescription // 记录错误信息
                             }
                         }) {
                             Label("启动服务", systemImage: "play.fill")
                                 .foregroundColor(.green)
+                        }
+                        .alert("错误", isPresented: $showingError) {
+                            Button("确定", role: .cancel) {}
+                        } message: {
+                            Text(binaryManager.error)
                         }
                     }
                 }
@@ -69,7 +96,7 @@ struct BinaryManagementView: View {
         .alert("错误", isPresented: $showingError) {
             Button("确定", role: .cancel) {}
         } message: {
-            Text(binaryManager.error ?? "未知错误")
+            Text(binaryManager.error)
         }
     }
 }

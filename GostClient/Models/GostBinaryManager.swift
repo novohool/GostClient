@@ -9,9 +9,9 @@ class GostBinaryManager {
     private let binaryName = "gost"
     
     private var binaryPath: URL {
-        // 获取应用程序支持目录
-        let appSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return appSupportURL.appendingPathComponent(binaryName)
+        // 获取 Binaries 目录
+        let binariesURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("Binaries")
+        return binariesURL.appendingPathComponent(binaryName)
     }
     
     private var workingDirectory: URL {
@@ -32,46 +32,49 @@ class GostBinaryManager {
             logger.error("GOST binary not installed")
             throw NSError(domain: "GostError", code: 1, userInfo: [NSLocalizedDescriptionKey: "GOST binary not installed"])
         }
-        
-        guard !isRunning else { return }
-        
-        // 确保配置文件存在
+
+        guard !isRunning else {
+            logger.info("GOST is already running")
+            return
+        }
+
         guard FileManager.default.fileExists(atPath: configPath) else {
             logger.error("Config file not found: \(configPath)")
             throw NSError(domain: "GostError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Config file not found"])
         }
-        
+
         let process = Process()
         process.executableURL = binaryPath
         process.arguments = ["-C", configPath]
         process.currentDirectoryURL = workingDirectory
-        
+
         logger.info("Starting GOST with config: \(configPath)")
-        
-        // 设置输出管道
+
         let outputPipe = Pipe()
         let errorPipe = Pipe()
         process.standardOutput = outputPipe
         process.standardError = errorPipe
-        
-        // 处理输出
+
         outputPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
-            guard let data = try? handle.read(upToCount: 1024),
-                  let output = String(data: data, encoding: .utf8) else { return }
-            self?.logger.debug("GOST output: \(output)")
+            if let data = try? handle.read(upToCount: 1024), let output = String(data: data, encoding: .utf8) {
+                self?.logger.debug("GOST output: \(output)")
+            }
         }
-        
+
         errorPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
-            guard let data = try? handle.read(upToCount: 1024),
-                  let output = String(data: data, encoding: .utf8) else { return }
-            self?.logger.error("GOST error: \(output)")
+            if let data = try? handle.read(upToCount: 1024), let output = String(data: data, encoding: .utf8) {
+                self?.logger.error("GOST error: \(output)")
+            }
         }
-        
-        // 启动进程
-        try process.run()
-        self.process = process
-        
-        logger.info("GOST started successfully")
+
+        do {
+            try process.run()
+            self.process = process
+            logger.info("GOST started successfully")
+        } catch {
+            logger.error("Failed to start GOST: \(error.localizedDescription)")
+            throw error
+        }
     }
     
     func stopGost() throws {
@@ -86,33 +89,29 @@ class GostBinaryManager {
     func installBinary(from url: URL) throws {
         logger.info("Installing GOST binary from: \(url.path)")
         
-        // 创建目标目录
         try FileManager.default.createDirectory(at: workingDirectory, withIntermediateDirectories: true)
         
-        // 复制二进制文件
         if FileManager.default.fileExists(atPath: binaryPath.path) {
             try FileManager.default.removeItem(at: binaryPath)
         }
         try FileManager.default.copyItem(at: url, to: binaryPath)
         
-        // 设置执行权限
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: binaryPath.path)
         
         logger.info("GOST binary installed successfully")
     }
     
     func checkAndInstallBinary() async throws {
-        // 如果已经安装，直接返回
         guard !isInstalled else { return }
-        
         logger.info("Binary not found, starting installation...")
-        
-        // 这里应该从你的服务器或者资源包中获取二进制文件
-        // 示例使用本地资源包中的二进制文件
-        guard let binaryURL = Bundle.main.url(forResource: binaryName, withExtension: nil) else {
-            throw NSError(domain: "GostError", code: 3, userInfo: [NSLocalizedDescriptionKey: "Binary not found in bundle"])
+
+        // 直接使用 Binaries 目录中的二进制文件
+        let binariesURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("Binaries")
+        let binaryURL = binariesURL.appendingPathComponent(binaryName)
+        guard FileManager.default.fileExists(atPath: binaryURL.path) else {
+            throw NSError(domain: "GostError", code: 3, userInfo: [NSLocalizedDescriptionKey: "Binary not found in Binaries directory"])
         }
-        
+
         try installBinary(from: binaryURL)
     }
 }
