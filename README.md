@@ -34,5 +34,58 @@ GostClient 是一个 iOS 应用程序，旨在提供用户友好的界面和高�
 4. 推送到分支 (`git push origin feature/YourFeature`)
 5. 创建一个新的 Pull Request。
 
+## 贡献指南
+在贡献代码之前，请确保您已经阅读并同意我们的贡献协议。
+
+## 代码风格
+请遵循 Swift 代码风格指南，以确保代码的一致性和可读性。
+
+## 提交问题
+如果您发现任何错误或有建议，请在 GitHub 上提交问题。感谢您的反馈！
+
+# 技术栈
+- Swift
+- UIKit
+- CoreData
+- Alamofire
+
+# 截图
+![应用截图](https://example.com/screenshot.png)
+
+# 常见问题解答 (FAQ)
+**Q: 如何重置密码？**  
+A: 在登录页面点击“忘记密码”，按照提示操作即可。  
+
+**Q: 如何联系支持？**  
+A: 请通过 [support@example.com](mailto:support@example.com) 联系我们。  
+
+# 联系方式
+如需更多信息，请访问我们的 [官方网站](https://example.com) 或通过电子邮件与我们联系：support@example.com.
+
 # 许可证
-此项目采用 MIT 许可证。有关详细信息，请查看 LICENSE 文件。
+此项目采用 MIT 许可证。有关详细信息，请查看 LICENSE 文件.
+
+# 项目结构
+```
+GostClient/
+├── ContentView.swift
+├── GostClientApp.swift
+├── GostViewModel.swift
+├── Info.plist
+├── Models/
+│   ├── ConfigValidator.swift
+│   ├── GostBinaryManager.swift
+│   ├── GostLaunchConfig.swift
+│   ├── LogManager.swift
+│   ├── ProxyConfig.swift
+│   └── ProxyRule.swift
+├── Views/
+│   ├── BinaryManagementView.swift
+│   ├── ConfigManagementView.swift
+│   ├── ConfigurationView.swift
+│   ├── LaunchConfigView.swift
+│   ├── LogViewer.swift
+│   ├── ProxyRulesView.swift
+│   ├── ServerConfigView.swift
+│   └── TrafficStatsView.swift
+└── PacketTunnel/
