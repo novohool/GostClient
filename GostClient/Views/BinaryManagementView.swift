@@ -8,12 +8,22 @@ struct BinaryManagementView: View {
     private func statusView() -> some View {
         if binaryManager.isDownloading {
             ProgressView("下载中...", value: binaryManager.downloadProgress, total: 1.0)
+                .foregroundColor(Color.blue)
+                .padding()
+                .background(Color.blue.opacity(0.2))
+                .cornerRadius(8)
+                .shadow(radius: 3)
         } else if binaryManager.isInstalled {
             HStack {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
                 Text("已安装")
             }
+            .foregroundColor(Color.green)
+            .padding()
+            .background(Color.green.opacity(0.2))
+            .cornerRadius(8)
+            .shadow(radius: 3)
         } else {
             HStack {
                 Image(systemName: "xmark.circle.fill")
@@ -34,6 +44,11 @@ struct BinaryManagementView: View {
                     Text(binaryManager.error)
                 }
             }
+            .foregroundColor(Color.red)
+            .padding()
+            .background(Color.red.opacity(0.2))
+            .cornerRadius(8)
+            .shadow(radius: 3)
         }
     }
     
@@ -63,40 +78,67 @@ struct BinaryManagementView: View {
                         }
                     } else {
                         Button(action: {
+                            showingError = false // Reset error state
+                            let configPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+                                .appendingPathComponent("gost.yaml")
+                                .path
                             do {
-                                // 获取配置文件路径
-                                let configPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-                                    .appendingPathComponent("gost.yaml")
-                                    .path
-                                do {
-                                    try binaryManager.startGost(configPath: configPath)
-                                    binaryManager.isRunning = true // 更新运行状态
-                                } catch {
-                                    showingError = true
-                                    binaryManager.error = error.localizedDescription // 记录错误信息
-                                }
+                                try binaryManager.startGost(configPath: configPath)
+                                binaryManager.isRunning = true
                             } catch {
                                 showingError = true
-                                binaryManager.error = error.localizedDescription // 记录错误信息
+                                binaryManager.error = error.localizedDescription
                             }
                         }) {
-                            Label("启动服务", systemImage: "play.fill")
-                                .foregroundColor(.green)
+                            Label(binaryManager.isRunning ? "停止服务" : "启动服务", systemImage: binaryManager.isRunning ? "stop.fill" : "play.fill")
+                                .foregroundColor(binaryManager.isRunning ? .red : .green)
+                                .padding()
+                                .background(binaryManager.isRunning ? Color.red.opacity(0.2) : Color.green.opacity(0.2))
+                                .cornerRadius(8)
+                                .shadow(radius: 3)
                         }
+                        .accessibilityLabel(binaryManager.isRunning ? "停止 GOST 服务" : "启动 GOST 服务")
                         .alert("错误", isPresented: $showingError) {
                             Button("确定", role: .cancel) {}
                         } message: {
                             Text(binaryManager.error)
                         }
                     }
+                    Button(binaryManager.isRunning ? "停止" : "启动") {
+                        if binaryManager.isRunning {
+                            binaryManager.stopBinary() // 停止代理
+                        } else {
+                            do {
+                                try binaryManager.startBinary() // 启动代理
+                            } catch {
+                                showingError = true
+                                binaryManager.error = error.localizedDescription
+                            }
+                        }
+                    }
                 }
             }
         }
-        .navigationTitle("二进制管理")
+        .padding()
+        .background(Color.white)
+        .cornerRadius(10)
+        .shadow(radius: 5)
+        .padding(.horizontal)
         .alert("错误", isPresented: $showingError) {
             Button("确定", role: .cancel) {}
         } message: {
             Text(binaryManager.error)
         }
+        .navigationTitle("二进制管理")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    // Action to refresh or perform another task
+                }) {
+                    Image(systemName: "arrow.clockwise")
+                }
+            }
+        }
+        .padding()
     }
 }

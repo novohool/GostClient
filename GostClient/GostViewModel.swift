@@ -47,7 +47,7 @@ class GostViewModel: ObservableObject {
                 self?.isConnected = true
                 self?.addLog("代理隧道连接成功")
             case .failed(let error):
-                self?.addLog("连接失败: \(error.localizedDescription) - \(String(describing: error)) - \(error)")
+                self?.addLog("连接失败: \(error.localizedDescription)") // 记录详细的错误信息
                 self?.showErrorMessage("代理隧道连接失败: \(error.localizedDescription) - \(String(describing: error)) - \(error)")
             case .cancelled:
                 self?.addLog("代理隧道连接已取消")
